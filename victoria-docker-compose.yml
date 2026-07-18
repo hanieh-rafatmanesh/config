@@ -1,0 +1,88 @@
+version: "3"
+
+networks:
+  data:
+    driver: bridge
+
+volumes:
+  grafanadata: {}
+
+services:
+  net-exporter-grafana:
+    image: docker.lib2.tiddev.com/grafana/grafana:main-ubuntu
+    container_name: net-exporter-grafana
+    hostname: net-exporter-grafana
+    restart: always
+    stop_grace_period: 5m
+    networks:
+      - data
+    ports:
+      - 3000:3000
+    environment:
+      - TZ=Asia/Tehran
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafanadata:/var/lib/grafana
+      - ./cfg/provisioning/:/etc/grafana/provisioning/
+  net-exporter-vm-ds-p1:
+    image: docker.lib2.tiddev.com/victoriametrics/victoria-metrics:enterprise-stable-scratch
+    container_name: net-exporter-vm-ds-p1
+    hostname: net-exporter-vm-ds-ph2
+    restart: always
+    stop_grace_period: 5m
+    networks:
+      - data
+    ports:
+      - 8428:8428
+    volumes:
+      - ./data/victoriametrics/:/storage
+    command:
+      - "-storageDataPath=/storage"
+      - "-loggerLevel=INFO"
+      - "-httpListenAddr=:8428"
+      - "-retentionPeriod=1y"
+      - "-influxSkipSingleField"
+      - "-selfScrapeInterval=30s"
+
+  net-exporter-vm-agent-p1:
+    image: docker.lib2.tiddev.com/victoriametrics/vmagent:enterprise-stable-scratch
+    container_name: net-exporter-vm-agent-ph2
+    hostname: net-exporter-vm-agent-ph2
+    restart: always
+    stop_grace_period: 5m
+    networks:
+      - data
+    ports:
+      - 8429:8429/tcp
+    volumes:
+      - ./cfg/net-exporter-vm-agent-p1.yml:/vmagent_prometheus.yml
+      - ./data/net-exporter-vm-agent-p1:/storage
+    command:
+      - "-promscrape.config=/vmagent_prometheus.yml"
+      - "-remoteWrite.tmpDataPath=/storage"
+      - "-loggerLevel=INFO"
+      - "-remoteWrite.url=http://net-exporter-vm-ds-p1:8428/api/v1/write"
+  net-exporter-ph2:
+    image: docker.lib2.tiddev.com/network_exporter:1.7.9
+    container_name: net-exporter-ph2
+    hostname: net-exporter-ph2
+    restart: always
+    stop_grace_period: 5m
+    privileged: true
+    networks:
+      - data
+    ports:
+      - 9427:9427/tcp
+    sysctls:
+      net.ipv4.ping_group_range: "0 429496729"
+      net.ipv4.ip_unprivileged_port_start: 0
+    cap_add:
+      - NET_RAW
+      - SYS_PTRACE
+    volumes:
+      - ./cfg/:/app/cfg/
+    command:
+      - "/app/network_exporter"
+      - "--log.level=info"
+      - "--config.file=/app/cfg/network_exporter.yml"
