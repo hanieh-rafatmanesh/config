@@ -1,4 +1,4 @@
-Deploying Redisinsight on Kubernetes with Helm
+## Deploying Redisinsight on Kubernetes with Helm
 1-chart:
 ```bash
 redisinsight-chart/
