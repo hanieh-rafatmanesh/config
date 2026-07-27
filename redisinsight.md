@@ -18,15 +18,15 @@ name: redisinsight
 description: RedisInsight Helm Chart
 type: application
 version: 1.0.0
-appVersion: "latest"
+appVersion: "3.8"
 ```
 4-value.yml  file:
 ```
 replicaCount: 1
 
 image:
-  repository: redis/redisinsight
-  tag: latest
+  repository: redislabs/redisinsight
+  tag: 3.8
   pullPolicy: IfNotPresent
 
 service:
