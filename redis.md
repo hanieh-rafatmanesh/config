@@ -39,6 +39,7 @@ metadata:
   namespace: default
 spec:
   storageClassName: nfs-storage
+  volumeName: redis-pv
   accessModes:
     - ReadWriteMany
   resources:
